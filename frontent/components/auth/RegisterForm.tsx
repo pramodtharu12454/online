@@ -5,7 +5,9 @@ import { Eye, EyeOff, Lock, Mail, User, Home, Phone } from "lucide-react";
 import { Button } from "../ui/button";
 
 import toast from "react-hot-toast";
-import { registerUser } from "@/lib/registerUserSchema";
+import { registerUser } from "@/lib/axios";
+import { registerSchema } from "@/lib/registerUserSchema";
+
 
 interface FormValues {
   name: string;
@@ -50,10 +52,10 @@ const RegisterForm = () => {
 
         <Formik
           initialValues={initialValues}
-          validationSchema={registerUser}
+          validationSchema={registerSchema}
           onSubmit={handleSubmit} // Must be exactly like this
         >
-          {({ isSubmitting }) => (
+          {({}) => (
             <Form className="space-y-5 border border-black rounded-lg p-6 bg-white">
               {/* Name */}
               <div className="space-y-1">
@@ -177,7 +179,7 @@ const RegisterForm = () => {
               {/* Submit Button */}
               <Button
                 type="submit"
-                className="w-full bg-black text-white rounded-md py-2 hover:bg-gray-800"   
+                className="w-full bg-black text-white rounded-md py-2 hover:bg-gray-800"
               >
                 {isLoading ? "Registering..." : "Register"}
               </Button>

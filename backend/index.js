@@ -3,9 +3,9 @@ import cors from "cors";
 
 import connectDB from "./db.connection.js";
 import { userController } from "./user/usercontroller.js";
+import { productController } from "./product/productcontroller.js";
 
 const app = express();
-const PORT = 8000;
 
 app.use(
   cors({
@@ -14,11 +14,13 @@ app.use(
   })
 );
 app.use(express.json());
-connectDB();
+await connectDB();
 
 // Mount auth routes under /user
 app.use(userController);
+app.use(productController);
 
+const PORT = 8000;
 app.listen(PORT, () => {
   console.log(`Server running on ${PORT}`);
 });
