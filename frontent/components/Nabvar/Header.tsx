@@ -51,6 +51,13 @@ const Header = ({ username }: HeaderProps) => {
             <ShoppingCart className="h-6 w-6" />
           </Link>
 
+          <Link
+            href="/about"
+            className="text-black font-medium hover:underline"
+          >
+            About Us
+          </Link>
+
           {isLoggedIn && (
             <Link
               href="/sellerDashboard"
@@ -111,6 +118,10 @@ const Header = ({ username }: HeaderProps) => {
 
           <Link href="/cart" className="block text-black hover:underline">
             🛒 Cart
+          </Link>
+
+          <Link href="/about" className="block text-black hover:underline">
+            About Us
           </Link>
 
           {isLoggedIn && (

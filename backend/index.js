@@ -4,6 +4,7 @@ import cors from "cors";
 import connectDB from "./db.connection.js";
 import { userController } from "./user/usercontroller.js";
 import { productController } from "./product/productcontroller.js";
+import { cartController } from "./cart/cartcontroller.js";
 
 const app = express();
 
@@ -19,6 +20,7 @@ await connectDB();
 // Mount auth routes under /user
 app.use(userController);
 app.use(productController);
+app.use(cartController);
 
 const PORT = 8000;
 app.listen(PORT, () => {

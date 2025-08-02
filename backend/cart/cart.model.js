@@ -2,9 +2,9 @@ import mongoose from "mongoose";
 
 // set rule/schema
 const cartSchema = new mongoose.Schema({
-  userId: {
+  buyerId: {
     type: mongoose.ObjectId,
-    required: true,
+    
     ref: "User",
   },
   productId: {
@@ -14,8 +14,7 @@ const cartSchema = new mongoose.Schema({
   },
   orderedQuantity: {
     type: Number,
-    required: true,
-    min: 1,
+      min: 1,
   },
 });
 

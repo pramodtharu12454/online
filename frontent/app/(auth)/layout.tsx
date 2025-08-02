@@ -4,6 +4,7 @@ import "../../app/globals.css";
 import Header from "@/components/Nabvar/Header";
 import { ToastContainer } from "react-toastify";
 import ReactQueryClientProvider from "@/provider/quertClient";
+import TeamAndFooterCard from "@/components/Nabvar/about";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +35,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased pt-[100px]`}
       >
         <Header username={username} />
-       <ReactQueryClientProvider>{children}</ReactQueryClientProvider>
+        <ReactQueryClientProvider>{children}</ReactQueryClientProvider>
         <ToastContainer position="top-right" autoClose={3000} />
       </body>
     </html>

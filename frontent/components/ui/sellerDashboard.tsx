@@ -3,37 +3,38 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { Edit, Trash2, X } from "lucide-react";
 import EditProduct from "../productform/EditProduct";
-import axiosInstance from "@/lib/axios.instanse"; // Update this if needed
+import axiosInstance from "@/lib/axios.instanse";
 import Image from "next/image";
 
 const SellerDashboard: React.FC = () => {
   const router = useRouter();
   const [products, setProducts] = useState<any[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
-  // Replace with dynamic logged-in user email
+  const [loading, setLoading] = useState<boolean>(false);
 
   // Fetch products from backend
   useEffect(() => {
     const fetchProducts = async () => {
       try {
+        setLoading(true);
         const res = await axiosInstance.post("/product/detail/list", {
-          sellerId: sellerId._id,
           page: 1,
           limit: 100,
         });
-        setProducts(res.data.products);
+
+        setProducts(res.data.productList);
       } catch (error) {
         console.error("Error fetching products:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchProducts();
   }, []);
 
-  // Close modal
   const closeModal = () => setEditIndex(null);
 
-  // Save product after editing
   const handleSave = async (updatedProduct: any) => {
     try {
       const current = products[editIndex!];
@@ -47,7 +48,6 @@ const SellerDashboard: React.FC = () => {
     }
   };
 
-  // Delete product
   const handleDelete = async (id: string) => {
     try {
       await axiosInstance.delete(`/product/delete/${id}`);
@@ -81,7 +81,7 @@ const SellerDashboard: React.FC = () => {
         <div className="bg-white shadow rounded-lg p-4">
           <p className="text-sm text-gray-500">Active Products</p>
           <p className="text-2xl font-semibold">
-            {products.filter((p) => p.status === "Active").length}
+            {products.filter((p) => p.stock > 0).length}
           </p>
         </div>
         <div className="bg-white shadow rounded-lg p-4">
@@ -96,53 +96,54 @@ const SellerDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Product List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {products.map((prod, idx) => (
-          <div
-            key={prod._id}
-            className="flex flex-col md:flex-row border border-black rounded-lg bg-white p-4 gap-6 items-center"
-          >
-            <div className="flex-shrink-0 flex items-center justify-center md:w-1/5">
-              <Image
-                src={prod.image}
-                alt={prod.name}
-                className="h-24 w-24 object-cover rounded"
-              />
-            </div>
-
-            <div className="flex-1 flex flex-col justify-between w-full">
-              <div>
-                <h3 className="font-bold text-black text-xl mb-2">
-                  {prod.name}
-                </h3>
-                <p className="text-lg text-black font-semibold mb-1">
-                  ₨{prod.price}
-                </p>
-                <p className="text-gray-700 mb-2">{prod.description}</p>
-                <p className="text-sm text-gray-500 mb-2">
-                  Rating: {prod.rating} ⭐
-                </p>
-                <p className="text-sm text-gray-500 mb-2">
-                  Stock: {prod.stock}
-                </p>
-              </div>
-              <div className="flex gap-3 mt-2">
-                <Edit
-                  className="w-6 h-6 cursor-pointer text-gray-600 hover:text-black"
-                  onClick={() => setEditIndex(idx)}
-                />
-                <Trash2
-                  className="w-6 h-6 cursor-pointer text-red-500 hover:text-red-700"
-                  onClick={() => handleDelete(prod._id)}
+      {loading ? (
+        <div className="text-center text-lg">Loading...</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {products.map((prod, idx) => (
+            <div
+              key={prod._id}
+              className="flex flex-col md:flex-row border border-black rounded-lg bg-white p-4 gap-6 items-center"
+            >
+              <div className="flex-shrink-0 flex items-center justify-center md:w-1/5">
+                <Image
+                  src={prod.imageUrl || "/placeholder.png"}
+                  alt={prod.productName}
+                  width={100}
+                  height={100}
+                  className="h-24 w-24 object-cover rounded"
                 />
               </div>
-            </div>
-          </div>
-        ))}
-      </div>
 
-      {/* Modal Popup */}
+              <div className="flex-1 flex flex-col justify-between w-full">
+                <div>
+                  <h3 className="font-bold text-black text-xl mb-2">
+                    {prod.productName}
+                  </h3>
+                  <p className="text-lg text-black font-semibold mb-1">
+                    ₨{prod.price}
+                  </p>
+                  <p className="text-gray-700 mb-2">{prod.description}</p>
+                  <p className="text-sm text-gray-500 mb-2">
+                    Stock: {prod.stock}
+                  </p>
+                </div>
+                <div className="flex gap-3 mt-2">
+                  <Edit
+                    className="w-6 h-6 cursor-pointer text-gray-600 hover:text-black"
+                    onClick={() => setEditIndex(idx)}
+                  />
+                  <Trash2
+                    className="w-6 h-6 cursor-pointer text-red-500 hover:text-red-700"
+                    onClick={() => handleDelete(prod._id)}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {editIndex !== null && (
         <div
           className="fixed inset-0 bg-transparent bg-opacity-20 backdrop-blur-sm flex items-center justify-center z-50"
@@ -161,7 +162,7 @@ const SellerDashboard: React.FC = () => {
 
             <EditProduct
               initialProduct={{
-                productName: products[editIndex].name,
+                productName: products[editIndex].productName,
                 description: products[editIndex].description,
                 category: products[editIndex].category || "",
                 stock: products[editIndex].stock,

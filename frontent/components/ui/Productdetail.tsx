@@ -1,13 +1,14 @@
 "use client";
 import Image from "next/image";
 import React from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Chip, CircularProgress, Button } from "@mui/material";
 import axiosInstance from "@/lib/axios.instanse";
 import { IError } from "@/interface/error.interface";
 
 interface IProductDetails {
+  _id: string;
   productName: string;
   category: string;
   price: number;
@@ -21,7 +22,19 @@ const fallbackImage = "/selloffer.png";
 
 const ProductDetail = () => {
   const params = useParams();
+  const router = useRouter();
   const productId = params?.id as string;
+
+  const handleAddToCart = async (id: string) => {
+    try {
+      await axiosInstance.post(`/cart/item/add/${id}`);
+
+      // Navigate to cart page after successful add
+      router.push("/cart");
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to add to cart");
+    }
+  };
 
   const { data, isLoading } = useQuery<IProductDetails, IError>({
     queryKey: ["product-detail", productId],
@@ -45,6 +58,7 @@ const ProductDetail = () => {
   }
 
   const {
+    _id,
     productName,
     category,
     price,
@@ -63,7 +77,7 @@ const ProductDetail = () => {
           alt={productName}
           width={400}
           height={250}
-          className="w-full h-[220px] object-cover hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-fill hover:scale-105 transition-transform duration-300"
         />
       </div>
 
@@ -73,7 +87,7 @@ const ProductDetail = () => {
         <div className="flex flex-wrap gap-2">
           <Chip label={category} color="secondary" variant="outlined" />
         </div>
-        <p className="text-green-600 text-2xl font-semibold">
+        <p className="text-red-600 text-2xl font-semibold">
           Rs. {price.toFixed(2)}
         </p>
         <p>
@@ -87,7 +101,12 @@ const ProductDetail = () => {
         </div>
 
         <div className="mt-4 flex gap-4">
-          <Button variant="contained" color="primary" className="rounded-full">
+          <Button
+            onClick={() => handleAddToCart(_id)}
+            variant="contained"
+            color="primary"
+            className="rounded-full"
+          >
             Add to Cart
           </Button>
           <Button

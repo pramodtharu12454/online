@@ -3,8 +3,10 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { Box, Button, Typography } from "@mui/material";
 import Image from "next/image";
+import { Box, Button, Typography, Chip } from "@mui/material";
+import { Heart } from "lucide-react";
+import axiosInstance from "@/lib/axios.instanse";
 
 interface Product {
   _id: string;
@@ -15,13 +17,9 @@ interface Product {
   price: number;
   imageUrl: string;
 }
-// dash -u na thapo
-
-// Code to push check
-
 
 const fallBackProductImage = "/selloffer.png";
-const PRODUCTS_PER_PAGE = 6;
+const PRODUCTS_PER_PAGE = 8;
 
 const ProductList = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -30,9 +28,20 @@ const ProductList = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
 
+  const handleAddToCart = async (id: string) => {
+    try {
+      await axiosInstance.post(`/cart/item/add/${id}`);
+
+      // Navigate to cart page after successful add
+      router.push("/cart");
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to add to cart");
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
-    setIsLoggedIn(!!token); // sets to true if token exists
+    setIsLoggedIn(!!token);
   }, []);
 
   useEffect(() => {
@@ -61,56 +70,73 @@ const ProductList = () => {
   }
 
   return (
-    <main className="bg-gradient-to-r from-gray-100 to-gray-200 min-h-screen py-10 px-4">
-      <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-8">
+    <main className="bg-gradient-to-br from-white to-white min-h-screen  px-4">
+      <p className="py-4 text-gray-600">
+        Total {currentProducts.length} products
+      </p>
+      <div className="grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
         {currentProducts.map((product) => (
           <Box
             key={product._id}
-            className="rounded-2xl bg-white shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden"
+            className="rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col"
           >
-            <div
-              className="cursor-pointer"
-              onClick={() => router.push(`/productdetail/${product._id}`)}
-            >
+            {/* Image Section with Fav Icon */}
+            <div className="relative cursor-pointer">
               <Image
                 src={product.imageUrl || fallBackProductImage}
                 alt={product.productName}
-                width={400}
-                height={250}
-                className="w-full h-[220px] object-cover hover:scale-105 transition-transform duration-300"
+                width={500}
+                height={300}
+                className="w-full h-[200px] object-cover hover:scale-105 transition-transform duration-300"
+                onClick={() => router.push(`/productdetail/${product._id}`)}
+              />
+              {/* Favorite Icon (top-right) */}
+              <div className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-md">
+                <Heart size={18} className="text-red-500" />
+              </div>
+            </div>
+
+            <div className="flex flex-row justify-between items-start p-4">
+              <div className="space-y-2 text-gray-800 flex-1">
+                <Typography variant="h6" className="font-bold text-lg truncate">
+                  {product.productName}
+                </Typography>
+                <p className="text-sm">
+                  <span className="font-medium">Price:</span> Rs.{" "}
+                  {product.price}
+                </p>
+                <p className="text-sm">
+                  <span className="font-medium">Qty/Unit:</span>{" "}
+                  {product.quantity}
+                </p>
+              </div>
+
+              <Chip
+                label={product.category}
+                color="secondary"
+                variant="outlined"
+                className="ml-4"
               />
             </div>
-            <div className="p-4 space-y-2 text-gray-800">
-              <Typography variant="h6" className="font-bold truncate text-lg">
-                {product.productName}
-              </Typography>
-              <p className="text-sm">
-                <span className="font-medium">Price:</span> Rs. {product.price}
-              </p>
-              <p className="text-sm">
-                <span className="font-medium">Quantity:</span>{" "}
-                {product.quantity}
-              </p>
 
-              <div className="mt-4 space-y-2">
+            <div className="px-4 pb-4 mt-auto space-y-2">
+              <Button
+                fullWidth
+                onClick={() => router.push(`/productdetail/${product._id}`)}
+                className="!bg-black !text-white hover:!bg-gray-800 rounded-full"
+              >
+                View Detail
+              </Button>
+
+              {isLoggedIn && (
                 <Button
                   fullWidth
-                  onClick={() => router.push(`/productdetail/${product._id}`)}
-                  className="!bg-black !text-white hover:!bg-gray-700 rounded-full"
+                  onClick={() => handleAddToCart(product._id)}
+                  className="!bg-blue-600 !text-white hover:!bg-blue-800 rounded-full"
                 >
-                  View Detail
+                  Add to Cart
                 </Button>
-
-                {isLoggedIn && (
-                  <Button
-                    fullWidth
-                    onClick={() => console.log("Add to cart:", product._id)}
-                    className="!bg-black !text-white hover:!bg-gray-600 rounded-full"
-                  >
-                    Add to Cart
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
           </Box>
         ))}

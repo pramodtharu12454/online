@@ -150,7 +150,14 @@ router.get("/productdetail/:id", async (req, res) => {
 });
 
 // list product by seller
-router.post("/product/detail/list", async (req, res) => {
+router.post("/product/detail/list", verifyToken, async (req, res) => {
+  const paginationData = req.body;
+
+  const page = paginationData.page;
+  const limit = paginationData.limit;
+
+  // calculate skip using limit and page
+  const skip = (page - 1) * limit;
   const products = await product.aggregate([
     {
       $match: {
@@ -190,5 +197,31 @@ router.post("/product/detail/list", async (req, res) => {
   return res
     .status(200)
     .send({ message: "success", productList: products, totalPage });
+});
+
+// Product Filter
+router.post("/product/filter", async (req, res) => {
+  try {
+    const { category, minPrice, maxPrice, sortBy } = req.body;
+
+    let query = {};
+    if (category) query.category = category;
+
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = Number(minPrice);
+      if (maxPrice) query.price.$lte = Number(maxPrice);
+    }
+
+    let sort = {};
+    if (sortBy === "lowToHigh") sort.price = 1;
+    else if (sortBy === "highToLow") sort.price = -1;
+    else sort.createdAt = -1;
+
+    const products = await product.find(query).sort(sort);
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 export { router as productController };
