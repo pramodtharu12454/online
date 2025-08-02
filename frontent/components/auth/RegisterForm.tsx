@@ -5,11 +5,15 @@ import { Eye, EyeOff, Lock, Mail, User, Home, Phone } from "lucide-react";
 import { Button } from "../ui/button";
 
 import toast from "react-hot-toast";
-import { registerUser } from "@/lib/axios";
-import { registerSchema } from "@/lib/registerUserSchema";
+import { useRouter } from "next/navigation";
+import { RegisterUserResponse } from "@/interface/register.interface";
+import { RegisterValidationSchema } from "@/validation-Schema/register.user.schema";
+import { IError } from "@/interface/error.interface";
+import axiosInstance from "@/lib/axios.instanse";
+import { useMutation } from "@tanstack/react-query";
+import { CircularProgress } from "@mui/material";
 
-
-interface FormValues {
+interface IRegisterForm {
   name: string;
   address: string;
   mobileNumber: string;
@@ -17,43 +21,45 @@ interface FormValues {
   password: string;
 }
 
-const initialValues: FormValues = {
-  name: "",
-  address: "",
-  mobileNumber: "",
-  email: "",
-  password: "",
-};
-
 const RegisterForm = () => {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const handleSubmit = async (values: FormValues) => {
-    setIsLoading(true);
-    try {
-      const response = await registerUser(values);
-      toast.success(response.message || "Registration successful");
-      console.log("Registration success:", response);
-    } catch (error: any) {
-      console.error(error);
-      toast.error(
-        error?.response?.data?.message ||
-          "Registration failed. Please try again."
-      );
-    }
-    setIsLoading(false);
-  };
+
+  const { isPending, mutate } = useMutation({
+    mutationKey: ["register-user"],
+    mutationFn: async (values: IRegisterForm) => {
+      return await axiosInstance.post("/user/register", values);
+    },
+    onSuccess: (res: RegisterUserResponse) => {
+      router.push("/login");
+      toast.success(res.data.message);
+    },
+    onError: (error: IError) => {
+      toast.error(error.response.data.message);
+    },
+  });
+
+  if (isPending) {
+    return <CircularProgress />;
+  }
   return (
     <div className="min-h-screen flex items-center justify-center bg-white p-4">
       <div className="border border-black rounded-xl p-8 bg-white shadow-lg w-full max-w-md">
         <h2 className="text-2xl font-bold text-center mb-6 text-black">
           Create Account
         </h2>
-
         <Formik
-          initialValues={initialValues}
-          validationSchema={registerSchema}
-          onSubmit={handleSubmit} // Must be exactly like this
+          initialValues={{
+            name: "",
+            address: "",
+            mobileNumber: "",
+            email: "",
+            password: "",
+          }}
+          validationSchema={RegisterValidationSchema}
+          onSubmit={(values: IRegisterForm) => {
+            mutate(values);
+          }}
         >
           {({}) => (
             <Form className="space-y-5 border border-black rounded-lg p-6 bg-white">
@@ -181,18 +187,16 @@ const RegisterForm = () => {
                 type="submit"
                 className="w-full bg-black text-white rounded-md py-2 hover:bg-gray-800"
               >
-                {isLoading ? "Registering..." : "Register"}
+                Register
               </Button>
             </Form>
           )}
         </Formik>
-
         <div className="relative my-6 text-center">
           <span className="bg-white px-2 text-xs text-gray-400 font-semibold">
             OR
           </span>
         </div>
-
         <div className="space-y-3">
           <Button
             variant="outline"
@@ -207,7 +211,6 @@ const RegisterForm = () => {
             Continue with Facebook
           </Button>
         </div>
-
         <p className="text-center text-sm text-gray-500 mt-6">
           Already have an account?{" "}
           <a href="/login" className="text-black hover:underline font-bold">

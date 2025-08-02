@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { Button } from "../ui/button";
+import { useRouter } from "next/navigation";
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -11,6 +12,7 @@ const LoginForm = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const router = useRouter();
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -26,8 +28,15 @@ const LoginForm = () => {
 
       if (res.ok) {
         toast.success(data.message || "Login successful");
-        console.log("Login success:", data);
-        // Optionally redirect or store token
+
+        // Store the token in localStorage (or cookies)
+        localStorage.setItem("accessToken", data.accessToken);
+
+        // Optionally store user data
+        localStorage.setItem("user", JSON.stringify(data.user));
+
+        // Redirect to home page
+        router.push("/");
       } else {
         toast.error(data.message || "Login failed");
       }

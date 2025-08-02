@@ -6,6 +6,10 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    imageUrl: {
+      type: String,
+      
+    },
     description: {
       type: String,
       required: true,
@@ -39,6 +43,10 @@ const productSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 0,
+    },
+    sellerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
   },
   { timestamps: true }

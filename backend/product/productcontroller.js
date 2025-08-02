@@ -1,14 +1,73 @@
-import exprss from "express";
+import express from "express";
 import product from "./product.model.js";
 import { verifyToken } from "../middleware/authenication.middleware.js";
+import { singleUpload } from "../middleware/upload.js";
+import getDataUri from "../middleware/dataUri.js";
+import cloudinary from "../utils/cloudinary.js";
 
-const router = exprss.Router();
+const router = express.Router();
 
-router.post("/product/add",verifyToken, async (req, res) => {
-  const newProduct = req.body;
+router.post("/product/add", verifyToken, singleUpload, async (req, res) => {
+  try {
+    const { productName, description, category, stock, quantity, price } =
+      req.body;
 
-  await product.create(newProduct);
-  return res.status(201).send({ message: "Product added successfully" });
+    // Validate required fields
+    if (
+      !productName ||
+      !description ||
+      !category ||
+      !stock ||
+      !quantity ||
+      !price
+    ) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Validate uploaded file
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ message: "Product image is required" });
+    }
+
+    // Convert file to Data URI
+    const fileUri = getDataUri(file);
+
+    // Upload to Cloudinary
+    const cloudResponse = await cloudinary.uploader.upload(fileUri.content, {
+      resource_type: "image",
+      folder: "products",
+      use_filename: true,
+      unique_filename: false,
+    });
+
+    const imageUrl = cloudResponse.secure_url;
+
+    // Get seller ID from token
+    const sellerId = req.loggedInUserId;
+    if (!sellerId) {
+      return res.status(401).json({ message: "Invalid Seller ID" });
+    }
+
+    // Save product
+    await product.create({
+      productName,
+      description,
+      category,
+      stock,
+      quantity,
+      price,
+      imageUrl,
+      sellerId,
+    });
+
+    return res.status(201).json({ message: "Product added successfully" });
+  } catch (error) {
+    console.error("Error adding product:", error);
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
+  }
 });
 
 router.get("/product/detail", async (req, res) => {
@@ -17,7 +76,7 @@ router.get("/product/detail", async (req, res) => {
 });
 
 // PUT /api/products/:id - Update a product
-router.put("/product/edit/:id",verifyToken, async (req, res) => {
+router.put("/product/edit/:id", verifyToken, async (req, res) => {
   const productId = req.params.id;
 
   // extract new values from req.body
@@ -37,7 +96,7 @@ router.put("/product/edit/:id",verifyToken, async (req, res) => {
   return res.status(200).send({ message: "Product is updated successfully." });
 });
 
-router.delete("/product/delete/:id",verifyToken, async (req, res) => {
+router.delete("/product/delete/:id", verifyToken, async (req, res) => {
   // extract product id from req.params
   const productId = req.params.id;
 
@@ -76,4 +135,60 @@ router.get("/product/filter", async (req, res) => {
   }
 });
 
+router.get("/productdetail/:id", async (req, res) => {
+  const productId = req.params.id;
+
+  try {
+    const productDetail = await product.findById(productId);
+    if (!productDetail) {
+      return res.status(404).send({ message: "Product not found" });
+    }
+    return res.status(200).send(productDetail);
+  } catch (error) {
+    return res.status(500).send({ message: "Error fetching product details" });
+  }
+});
+
+// list product by seller
+router.post("/product/detail/list", async (req, res) => {
+  const products = await product.aggregate([
+    {
+      $match: {
+        sellerId: req.loggedInUserId, // filter products using sellerId
+      },
+    },
+    {
+      $sort: {
+        createdAt: -1,
+      },
+    },
+    {
+      $skip: skip,
+    },
+    { $limit: limit },
+    {
+      $project: {
+        productName: 1,
+        category: 1,
+        price: 1,
+        quantity: 1,
+        stock: 1,
+        image: 1,
+        description: 1,
+      },
+    },
+  ]);
+
+  const totalItems = await product
+    .find({
+      sellerId: req.loggedInUserId,
+    })
+    .countDocuments();
+
+  const totalPage = Math.ceil(totalItems / limit);
+
+  return res
+    .status(200)
+    .send({ message: "success", productList: products, totalPage });
+});
 export { router as productController };
