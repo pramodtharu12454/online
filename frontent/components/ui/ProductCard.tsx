@@ -16,6 +16,9 @@ interface Product {
   imageUrl: string;
 }
 
+// Code to push check
+
+
 const fallBackProductImage = "/selloffer.png";
 const PRODUCTS_PER_PAGE = 6;
 
