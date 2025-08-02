@@ -15,6 +15,7 @@ interface Product {
   price: number;
   imageUrl: string;
 }
+// dash -u na thapo
 
 // Code to push check
 
