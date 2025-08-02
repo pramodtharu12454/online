@@ -8,7 +8,7 @@ const router = express.Router();
 // add item to cart
 router.post("/cart/item/add/:id", verifyToken, async (req, res, next) => {
   const productId = req.params.id;
-  console.log(productId);
+
   const Product = await product.findOne({ _id: productId });
 
   // if not product, throw error
@@ -16,7 +16,7 @@ router.post("/cart/item/add/:id", verifyToken, async (req, res, next) => {
     return res.status(404).send({ message: "Product does not exist." });
   }
   const cart = await CartTable.findOne({ _id: productId });
-  
+
   if (cart) {
     return res.status(404).send({ message: "Already on cart." });
   }
@@ -81,4 +81,43 @@ router.put("/cart/item/update", verifyToken, async (req, res) => {
   }
 });
 
+router.post("/item/bulk-remove", async (req, res) => {
+  const { productIds } = req.body;
+
+  if (!Array.isArray(productIds) || productIds.length === 0) {
+    return res.status(400).json({ error: "productIds array is required" });
+  }
+
+  try {
+    const result = await CartTable.deleteMany({
+      productId: { $in: productIds },
+    });
+    res.json({
+      message: "Selected items removed successfully",
+      deletedCount: result.deletedCount,
+    });
+  } catch (err) {
+    console.error("Error removing cart items:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/item/remove", async (req, res) => {
+  const { productId } = req.body;
+
+  if (!productId) {
+    return res.status(400).json({ error: "productId is required" });
+  }
+
+  try {
+    const result = await CartTable.findOneAndDelete({ productId }); // Modify filter for your schema
+    if (!result) {
+      return res.status(404).json({ error: "Item not found" });
+    }
+    res.json({ message: "Item removed successfully", removedItem: result });
+  } catch (err) {
+    console.error("Error removing cart item:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 export { router as cartController };

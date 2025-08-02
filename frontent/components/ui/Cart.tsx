@@ -1,57 +1,90 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import Image from "next/image";
 import axiosInstance from "@/lib/axios.instanse";
+import toast, { Toaster } from "react-hot-toast";
 
 interface CartItem {
-  _id: string; // cart item id
+  _id: string;
   productId: string;
   productName: string;
   category: string;
   price: number;
   quantity: number;
   imageUrl: string;
-  originalPrice?: number;
-  saving?: number;
 }
 
 const Cart = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectAll, setSelectAll] = useState(false);
 
-  // Fetch cart items
-     const fetchCartItems = async () => {
-      try {
-        setLoading(true);
-        const res = await axiosInstance.post("/cart/item/add"); // Adjust API endpoint
-        // Ensure data shape is safe
-        setCartItems(res.data?.cartItems || res.data || []);
-      } catch (err) {
-        setError("Failed to load cart items");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Fetch cart items from API
+  const fetchCartItems = async () => {
+    try {
+      setLoading(true);
+      const res = await axiosInstance.get("/cart/items");
+      setCartItems(res.data || []);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load cart items");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
- 
     fetchCartItems();
   }, []);
 
-  // Update quantity
-  const updateQuantity = async (productId: string, newQuantity: number) => {
-    if (newQuantity < 1) return;
+  // Add product to cart with duplicate check
+  const addToCart = async (product: {
+    productId: string;
+    productName: string;
+    category: string;
+    price: number;
+    imageUrl: string;
+  }) => {
+    const exists = cartItems.some(
+      (item) => item.productId === product.productId
+    );
+    if (exists) {
+      toast.error("Product is already in the cart");
+      return;
+    }
 
     try {
-      await axios.post("/cart/item/add", {
+      await axiosInstance.post("/cart/item/add", {
+        productId: product.productId,
+        quantity: 1,
+      });
+
+      // Ideally you get _id and quantity from backend, but if not:
+      setCartItems((prev) => [
+        ...prev,
+        {
+          _id: "temp-" + product.productId,
+          quantity: 1,
+          ...product,
+        },
+      ]);
+      toast.success("Product added to cart");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to add product");
+    }
+  };
+
+  // Update quantity of a cart item
+  const updateQuantity = async (productId: string, newQuantity: number) => {
+    if (newQuantity < 1) return;
+    try {
+      await axiosInstance.put("/cart/item/update", {
         productId,
         orderedQuantity: newQuantity,
       });
-
-      // Update local state
       setCartItems((prev) =>
         prev.map((item) =>
           item.productId === productId
@@ -59,38 +92,127 @@ const Cart = () => {
             : item
         )
       );
+      toast.success("Quantity updated");
     } catch (err) {
-      console.error("Failed to update quantity", err);
-      alert("Error updating quantity");
+      console.error(err);
+      toast.error("Error updating quantity");
     }
   };
 
-  // Calculate total price safely
-  const totalPrice = (cartItems || []).reduce(
-    (acc, item) => acc + (item.price || 0) * (item.quantity || 0),
+  // Remove single item
+  const handleRemoveItem = async (productId: string) => {
+    try {
+      await axiosInstance.post("/item/remove", { productId });
+      setCartItems((prev) =>
+        prev.filter((item) => item.productId !== productId)
+      );
+      setSelectedItems((prev) => prev.filter((id) => id !== productId));
+      toast.success("Item removed");
+    } catch (err) {
+      console.error(err);
+      toast.error("Error removing item");
+    }
+  };
+
+  // Bulk delete selected items
+  const handleBulkDelete = async () => {
+    try {
+      await axiosInstance.post("/item/bulk-remove", {
+        productIds: selectedItems,
+      });
+      setCartItems((prev) =>
+        prev.filter((item) => !selectedItems.includes(item.productId))
+      );
+      setSelectedItems([]);
+      setSelectAll(false);
+      toast.success("Selected items deleted");
+    } catch (err) {
+      console.error(err);
+      toast.error("Error deleting selected items");
+    }
+  };
+
+  // Toggle select single item
+  const toggleSelectItem = (productId: string) => {
+    setSelectedItems((prev) =>
+      prev.includes(productId)
+        ? prev.filter((id) => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  // Toggle select all items
+  const toggleSelectAll = () => {
+    if (selectAll) {
+      setSelectedItems([]);
+      setSelectAll(false);
+    } else {
+      setSelectedItems(cartItems.map((item) => item.productId));
+      setSelectAll(true);
+    }
+  };
+
+  // Sync selectAll state with selectedItems and cartItems length
+  React.useEffect(() => {
+    setSelectAll(
+      selectedItems.length === cartItems.length && cartItems.length > 0
+    );
+  }, [selectedItems, cartItems]);
+
+  // Calculate totals
+  const totalPrice = cartItems.reduce(
+    (acc, item) => acc + item.price * item.quantity,
     0
   );
 
+  const selectedTotal = cartItems
+    .filter((item) => selectedItems.includes(item.productId))
+    .reduce((acc, item) => acc + item.price * item.quantity, 0);
+
   if (loading) return <p>Loading cart...</p>;
-  if (error) return <p>{error}</p>;
+  if (error) return <p className="text-red-500">{error}</p>;
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
+      <Toaster position="top-right" />
       <h1 className="text-3xl font-bold mb-6">Shopping Cart</h1>
 
       <div className="grid md:grid-cols-3 gap-6">
         {/* Cart Items */}
         <div className="md:col-span-2 space-y-6">
           {cartItems.length === 0 && <p>Your cart is empty.</p>}
+
+          {cartItems.length > 0 && (
+            <div className="mb-2 flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={selectAll}
+                onChange={toggleSelectAll}
+                id="select-all"
+              />
+              <label
+                htmlFor="select-all"
+                className="select-none cursor-pointer"
+              >
+                Select All
+              </label>
+            </div>
+          )}
+
           {cartItems.map((item) => (
             <div
-              key={item._id || item.productId}
+              key={item._id}
               className="border rounded-lg p-4 flex justify-between items-center"
             >
               <div className="flex items-center gap-4">
+                <input
+                  type="checkbox"
+                  checked={selectedItems.includes(item.productId)}
+                  onChange={() => toggleSelectItem(item.productId)}
+                />
                 <Image
-                  src={item.imageUrl || "/fallback.png"}
-                  alt={item.productName || "Product"}
+                  src={item.imageUrl || "/selloffer.png"}
+                  alt={item.productName}
                   width={80}
                   height={80}
                   className="rounded"
@@ -101,28 +223,17 @@ const Cart = () => {
                     {item.category}
                   </span>
                   <div className="mt-2">
-                    <p className="text-xl font-bold">
-                      Rs{item.price.toLocaleString()}
-                    </p>
-                    {item.originalPrice && (
-                      <p className="line-through text-gray-500 text-sm">
-                        Rs{item.originalPrice.toLocaleString()}
-                      </p>
-                    )}
-                    {item.saving && (
-                      <p className="text-green-600 text-sm">
-                        You save Rs{item.saving.toLocaleString()}
-                      </p>
-                    )}
+                    <p className="text-xl font-bold">₨ {item.price}</p>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col items-end gap-2">
                 <div className="flex items-center border px-2 py-1 rounded">
                   <button
                     onClick={() =>
                       updateQuantity(item.productId, item.quantity - 1)
                     }
+                    aria-label="Decrease quantity"
                   >
                     −
                   </button>
@@ -131,19 +242,35 @@ const Cart = () => {
                     onClick={() =>
                       updateQuantity(item.productId, item.quantity + 1)
                     }
+                    aria-label="Increase quantity"
                   >
                     +
                   </button>
                 </div>
                 <p className="text-sm">
-                  Subtotal: Rs{(item.price * item.quantity).toLocaleString()}
+                  Subtotal: ₨ {(item.price * item.quantity).toLocaleString()}
                 </p>
+                <button
+                  onClick={() => handleRemoveItem(item.productId)}
+                  className="text-red-500 text-sm"
+                >
+                  Remove
+                </button>
               </div>
             </div>
           ))}
+
+          {selectedItems.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="bg-red-600 text-white px-4 py-2 rounded mt-4"
+            >
+              Delete Selected ({selectedItems.length})
+            </button>
+          )}
         </div>
 
-        {/* Summary Section */}
+        {/* Summary */}
         <div className="space-y-6">
           <div className="border rounded-lg p-4">
             <h3 className="text-lg font-semibold mb-2">Order Summary</h3>
@@ -152,11 +279,7 @@ const Cart = () => {
                 Subtotal ({cartItems.reduce((acc, i) => acc + i.quantity, 0)}{" "}
                 items)
               </span>
-              <span>Rs{totalPrice.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between text-green-600">
-              <span>You Save</span>
-              <span>-Rs25,000</span>
+              <span>₨ {totalPrice.toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span>Delivery Fee</span>
@@ -165,15 +288,32 @@ const Cart = () => {
             <hr className="my-2" />
             <div className="flex justify-between font-bold text-xl">
               <span>Total</span>
-              <span>Rs{totalPrice.toLocaleString()}</span>
+              <span>₨ {totalPrice.toLocaleString()}</span>
             </div>
-            <button className="w-full bg-black text-white py-2 mt-4 rounded">
+            <button
+              className="w-full bg-black text-white py-2 mt-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={cartItems.length === 0}
+            >
               Proceed to Checkout
             </button>
             <button className="w-full border mt-2 py-2 rounded">
               Continue Shopping
             </button>
           </div>
+
+          {selectedItems.length > 0 && (
+            <div className="border rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-2">Selected Summary</h3>
+              <div className="flex justify-between">
+                <span>Selected Items</span>
+                <span>{selectedItems.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Selected Total</span>
+                <span>₨ {selectedTotal.toLocaleString()}</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

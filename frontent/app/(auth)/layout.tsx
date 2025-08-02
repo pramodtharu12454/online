@@ -4,7 +4,6 @@ import "../../app/globals.css";
 import Header from "@/components/Nabvar/Header";
 import { ToastContainer } from "react-toastify";
 import ReactQueryClientProvider from "@/provider/quertClient";
-import TeamAndFooterCard from "@/components/Nabvar/about";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

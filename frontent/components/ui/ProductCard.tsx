@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Box, Button, Typography, Chip } from "@mui/material";
@@ -19,20 +18,26 @@ interface Product {
 }
 
 const fallBackProductImage = "/selloffer.png";
-const PRODUCTS_PER_PAGE = 8;
+const PRODUCTS_PER_PAGE = 9;
 
 const ProductList = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [cartProductIds, setCartProductIds] = useState<string[]>([]);
+
   const router = useRouter();
 
   const handleAddToCart = async (id: string) => {
+    if (cartProductIds.includes(id)) {
+      alert("Product already in cart");
+      return;
+    }
+
     try {
       await axiosInstance.post(`/cart/item/add/${id}`);
-
-      // Navigate to cart page after successful add
+      setCartProductIds((prev) => [...prev, id]); // update local state
       router.push("/cart");
     } catch (err: any) {
       alert(err.response?.data?.message || "Failed to add to cart");
@@ -42,12 +47,24 @@ const ProductList = () => {
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     setIsLoggedIn(!!token);
+
+    // if (token) {
+    //   axiosInstance
+    //     .get("/cart/item")
+    //     .then((res) => {
+    //       const ids = res.data.map((item: any) => item.productId);
+    //       setCartProductIds(ids);
+    //     })
+    //     .catch((err) => {
+    //       console.error("Failed to fetch cart items:", err);
+    //     });
+    // }
   }, []);
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await axios.get("http://localhost:8000/product/detail");
+        const res = await axiosInstance.get("/product/detail");
         setProducts(res.data);
       } catch (err) {
         console.error("Failed to fetch products:", err);
@@ -70,17 +87,16 @@ const ProductList = () => {
   }
 
   return (
-    <main className="bg-gradient-to-br from-white to-white min-h-screen  px-4">
-      <p className="py-4 text-gray-600">
-        Total {currentProducts.length} products
-      </p>
+    <main className="bg-gradient-to-br from-white to-white min-h-screen px-4">
+      <p className="py-4 text-gray-600">Total {products.length} products</p>
+
       <div className="grid sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
         {currentProducts.map((product) => (
           <Box
             key={product._id}
             className="rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col"
           >
-            {/* Image Section with Fav Icon */}
+            {/* Product Image */}
             <div className="relative cursor-pointer">
               <Image
                 src={product.imageUrl || fallBackProductImage}
@@ -90,12 +106,13 @@ const ProductList = () => {
                 className="w-full h-[200px] object-cover hover:scale-105 transition-transform duration-300"
                 onClick={() => router.push(`/productdetail/${product._id}`)}
               />
-              {/* Favorite Icon (top-right) */}
+              {/* Heart Icon */}
               <div className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-md">
                 <Heart size={18} className="text-red-500" />
               </div>
             </div>
 
+            {/* Product Info */}
             <div className="flex flex-row justify-between items-start p-4">
               <div className="space-y-2 text-gray-800 flex-1">
                 <Typography variant="h6" className="font-bold text-lg truncate">
@@ -110,7 +127,6 @@ const ProductList = () => {
                   {product.quantity}
                 </p>
               </div>
-
               <Chip
                 label={product.category}
                 color="secondary"
@@ -119,6 +135,7 @@ const ProductList = () => {
               />
             </div>
 
+            {/* Buttons */}
             <div className="px-4 pb-4 mt-auto space-y-2">
               <Button
                 fullWidth
@@ -134,7 +151,9 @@ const ProductList = () => {
                   onClick={() => handleAddToCart(product._id)}
                   className="!bg-blue-600 !text-white hover:!bg-blue-800 rounded-full"
                 >
-                  Add to Cart
+                  {cartProductIds.includes(product._id)
+                    ? "Already in Cart"
+                    : "Add to Cart"}
                 </Button>
               )}
             </div>

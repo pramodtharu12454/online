@@ -39,6 +39,23 @@ const FilterSidebar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const router = useRouter();
 
+  const [cartProductIds, setCartProductIds] = useState<string[]>([]);
+
+  const handleAddToCart = async (id: string) => {
+    if (cartProductIds.includes(id)) {
+      alert("Product already in cart");
+      return;
+    }
+
+    try {
+      await axiosInstance.post(`/cart/item/add/${id}`);
+      setCartProductIds((prev) => [...prev, id]); // update local state
+      router.push("/cart");
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to add to cart");
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     setIsLoggedIn(!!token);
@@ -49,7 +66,7 @@ const FilterSidebar = () => {
     setLoading(true);
     setError("");
     try {
-      const res = await axiosInstance.get("/product"); // backend endpoint for all products
+      const res = await axiosInstance.get("/product/detail"); // backend endpoint for all products
       setProducts(res.data);
     } catch (err) {
       setError("Failed to fetch products");
@@ -85,7 +102,7 @@ const FilterSidebar = () => {
   };
 
   return (
-    <div className="flex gap-6 max-w-6xl mx-auto p-4">
+    <div className="flex gap-6 w-full mx-auto p-4">
       {/* Filter Sidebar */}
       <aside className="border border-black rounded-lg p-4 bg-white md:w-64">
         <h3 className="font-bold mb-4 text-black">Categories</h3>
@@ -229,7 +246,7 @@ const FilterSidebar = () => {
                     {isLoggedIn && (
                       <Button
                         fullWidth
-                        onClick={() => console.log("Add to cart:", product._id)}
+                        onClick={() => handleAddToCart(product._id)}
                         className="!bg-blue-600 !text-white hover:!bg-blue-800 rounded-full"
                       >
                         Add to Cart
@@ -244,7 +261,7 @@ const FilterSidebar = () => {
 
         {/* Example static "Showing count" with ProductList fallback */}
 
-        <div className="mt-4">
+        <div className="mt-4 ">
           <ProductList />
         </div>
       </section>
