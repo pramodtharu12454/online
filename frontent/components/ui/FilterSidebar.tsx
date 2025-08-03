@@ -5,7 +5,6 @@ import { Heart } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import ProductList from "./ProductCard"; // your existing card list (optional)
 
 const categories = [
   "Grocery",
@@ -41,6 +40,22 @@ const FilterSidebar = () => {
 
   const [cartProductIds, setCartProductIds] = useState<string[]>([]);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 6;
+
+  const indexOfLastProduct = currentPage * productsPerPage;
+  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+  const currentProducts = products.slice(
+    indexOfFirstProduct,
+    indexOfLastProduct
+  );
+
+  const totalPages = Math.ceil(products.length / productsPerPage);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) setCurrentPage(page);
+  };
+
   const handleAddToCart = async (id: string) => {
     if (cartProductIds.includes(id)) {
       alert("Product already in cart");
@@ -49,7 +64,7 @@ const FilterSidebar = () => {
 
     try {
       await axiosInstance.post(`/cart/item/add/${id}`);
-      setCartProductIds((prev) => [...prev, id]); // update local state
+      setCartProductIds((prev) => [...prev, id]);
       router.push("/cart");
     } catch (err: any) {
       alert(err.response?.data?.message || "Failed to add to cart");
@@ -61,12 +76,11 @@ const FilterSidebar = () => {
     setIsLoggedIn(!!token);
   }, []);
 
-  // Fetch default product list (no filters)
   const fetchDefaultProducts = async () => {
     setLoading(true);
     setError("");
     try {
-      const res = await axiosInstance.get("/product/detail"); // backend endpoint for all products
+      const res = await axiosInstance.get("/product/detail");
       setProducts(res.data);
     } catch (err) {
       setError("Failed to fetch products");
@@ -76,12 +90,10 @@ const FilterSidebar = () => {
     }
   };
 
-  // Run on page load
   useEffect(() => {
     fetchDefaultProducts();
   }, []);
 
-  // Handle filter button click
   const handleFilter = async () => {
     setLoading(true);
     setError("");
@@ -92,7 +104,8 @@ const FilterSidebar = () => {
         maxPrice,
         sortBy,
       });
-      setProducts(res.data); // backend returns filtered products
+      setProducts(res.data);
+      setCurrentPage(1); // reset to first page on filter
     } catch (err) {
       setError("Failed to fetch products");
       console.error(err);
@@ -166,7 +179,6 @@ const FilterSidebar = () => {
         >
           {loading ? "Loading..." : "Apply Filter"}
         </button>
-        {/* {error && <p className="text-red-600 mt-2">{error}</p>} */}
       </aside>
 
       {/* Product Section */}
@@ -179,16 +191,15 @@ const FilterSidebar = () => {
           </p>
         ) : (
           <>
-            <p className="text-gray-600">
-              Filteed Products {products.length} products
+            <p className="text-gray-600 mb-2">
+              Filtered Products: {products.length}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {products.map((product) => (
+              {currentProducts.map((product) => (
                 <Box
                   key={product._id}
                   className="rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col"
                 >
-                  {/* Image Section with Fav Icon */}
                   <div className="relative cursor-pointer">
                     <Image
                       src={product.imageUrl || "/selloffer.png"}
@@ -200,7 +211,6 @@ const FilterSidebar = () => {
                         router.push(`/productdetail/${product._id}`)
                       }
                     />
-                    {/* Favorite Icon (top-right) */}
                     <div className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-md">
                       <Heart size={18} className="text-red-500" />
                     </div>
@@ -256,14 +266,41 @@ const FilterSidebar = () => {
                 </Box>
               ))}
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-6 space-x-2">
+                <Button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="!bg-black !text-white"
+                >
+                  Prev
+                </Button>
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <Button
+                    key={i}
+                    onClick={() => handlePageChange(i + 1)}
+                    className={`${
+                      currentPage === i + 1
+                        ? "!bg-blue-600 !text-white"
+                        : "!bg-gray-200 !text-black"
+                    }`}
+                  >
+                    {i + 1}
+                  </Button>
+                ))}
+                <Button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="!bg-black !text-white"
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </>
         )}
-
-        {/* Example static "Showing count" with ProductList fallback */}
-
-        <div className="mt-4 ">
-          <ProductList />
-        </div>
       </section>
     </div>
   );
