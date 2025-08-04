@@ -22,60 +22,30 @@ const Cart = () => {
   const [selectAll, setSelectAll] = useState(false);
 
   // Fetch cart items from API
-  const fetchCartItems = async () => {
-    try {
-      setLoading(true);
-      const res = await axiosInstance.get("/cart/items");
-      setCartItems(res.data || []);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to load cart items");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
+    const fetchCartItems = async () => {
+      try {
+        setLoading(true);
+        const res = await axiosInstance.get("/cart/items");
+        const normalizedData = (res.data || []).map((item: any) => ({
+          ...item,
+          price: Number(item.price) || 0,
+          quantity: Number(item.quantity) || 1,
+        }));
+
+        setCartItems(normalizedData);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load cart items");
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchCartItems();
   }, []);
 
-  // Add product to cart with duplicate check
-  const addToCart = async (product: {
-    productId: string;
-    productName: string;
-    category: string;
-    price: number;
-    imageUrl: string;
-  }) => {
-    const exists = cartItems.some(
-      (item) => item.productId === product.productId
-    );
-    if (exists) {
-      toast.error("Product is already in the cart");
-      return;
-    }
-
-    try {
-      await axiosInstance.post("/cart/item/add", {
-        productId: product.productId,
-        quantity: 1,
-      });
-
-      // Ideally you get _id and quantity from backend, but if not:
-      setCartItems((prev) => [
-        ...prev,
-        {
-          _id: "temp-" + product.productId,
-          quantity: 1,
-          ...product,
-        },
-      ]);
-      toast.success("Product added to cart");
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to add product");
-    }
-  };
+  // (Removed unused addToCart function)
 
   // Update quantity of a cart item
   const updateQuantity = async (productId: string, newQuantity: number) => {
@@ -248,6 +218,7 @@ const Cart = () => {
                   </button>
                 </div>
                 <p className="text-sm">
+                  {/* Subtotal: ₨ {(item.price * item.quantity).toLocaleString()} */}
                   Subtotal: ₨ {(item.price * item.quantity).toLocaleString()}
                 </p>
                 <button

@@ -180,7 +180,7 @@ router.post("/product/detail/list", verifyToken, async (req, res) => {
         price: 1,
         quantity: 1,
         stock: 1,
-        image: 1,
+        imageUrl: 1,
         description: 1,
       },
     },
@@ -225,6 +225,5 @@ router.post("/product/filter", async (req, res) => {
   }
 });
 
-
-// Product Delete in cart 
+// Product Delete in cart
 export { router as productController };

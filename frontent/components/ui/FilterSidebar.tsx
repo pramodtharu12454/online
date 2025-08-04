@@ -36,12 +36,10 @@ const FilterSidebar = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const router = useRouter();
-
   const [cartProductIds, setCartProductIds] = useState<string[]>([]);
-
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = 6;
+  const router = useRouter();
 
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
@@ -49,7 +47,6 @@ const FilterSidebar = () => {
     indexOfFirstProduct,
     indexOfLastProduct
   );
-
   const totalPages = Math.ceil(products.length / productsPerPage);
 
   const handlePageChange = (page: number) => {
@@ -66,8 +63,12 @@ const FilterSidebar = () => {
       await axiosInstance.post(`/cart/item/add/${id}`);
       setCartProductIds((prev) => [...prev, id]);
       router.push("/cart");
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to add to cart");
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "response" in err && err.response && typeof err.response === "object" && "data" in err.response && err.response.data && typeof err.response.data === "object" && "message" in err.response.data) {
+        alert((err as { response: { data: { message: string } } }).response.data.message);
+      } else {
+        alert("Failed to add to cart");
+      }
     }
   };
 
@@ -78,12 +79,12 @@ const FilterSidebar = () => {
 
   const fetchDefaultProducts = async () => {
     setLoading(true);
-    setError("");
+    // setError(""); // Removed unused error state
     try {
       const res = await axiosInstance.get("/product/detail");
       setProducts(res.data);
     } catch (err) {
-      setError("Failed to fetch products");
+      // setError("Failed to fetch products"); // Removed unused error state
       console.error(err);
     } finally {
       setLoading(false);
@@ -105,7 +106,7 @@ const FilterSidebar = () => {
         sortBy,
       });
       setProducts(res.data);
-      setCurrentPage(1); // reset to first page on filter
+      setCurrentPage(1);
     } catch (err) {
       setError("Failed to fetch products");
       console.error(err);
@@ -115,9 +116,9 @@ const FilterSidebar = () => {
   };
 
   return (
-    <div className="flex gap-6 w-full mx-auto p-4">
+    <div className="flex flex-col md:flex-row gap-6 w-full mx-auto p-4">
       {/* Filter Sidebar */}
-      <aside className="border border-black rounded-lg p-4 bg-white md:w-64">
+      <aside className="border border-black rounded-lg p-4 bg-white w-full md:w-64">
         <h3 className="font-bold mb-4 text-black">Categories</h3>
         <ul className="space-y-2 mb-6">
           {categories.map((cat) => (
@@ -136,7 +137,6 @@ const FilterSidebar = () => {
           ))}
         </ul>
 
-        {/* Price Range */}
         <div className="mb-6">
           <h4 className="font-semibold text-black mb-2">Price Range</h4>
           <div className="flex items-center gap-2">
@@ -158,7 +158,6 @@ const FilterSidebar = () => {
           </div>
         </div>
 
-        {/* Sort */}
         <div className="mb-4">
           <h4 className="font-semibold text-black mb-2">Sort By</h4>
           <select
@@ -182,7 +181,7 @@ const FilterSidebar = () => {
       </aside>
 
       {/* Product Section */}
-      <section className="flex-1">
+      <section className="flex-1 w-full">
         {loading ? (
           <p className="text-center text-gray-600">Loading...</p>
         ) : products.length === 0 ? (

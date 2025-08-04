@@ -5,12 +5,20 @@ import { Edit, Trash2, X } from "lucide-react";
 import EditProduct from "../productform/EditProduct";
 import axiosInstance from "@/lib/axios.instanse";
 import Image from "next/image";
+import NotificationPanel from "../productform/NotificationPanel";
+// ✅ import NotificationPanel
 
 const SellerDashboard: React.FC = () => {
   const router = useRouter();
   const [products, setProducts] = useState<any[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  console.log(products);
+
+  // ✅ Order notification handler (currently just logs to console)
+  const handleSelectOrder = (order: any) => {
+    console.log("Selected order:", order);
+  };
 
   // Fetch products from backend
   useEffect(() => {
@@ -59,17 +67,22 @@ const SellerDashboard: React.FC = () => {
 
   return (
     <div className="p-8 font-sans relative">
+      {/* Header with Notifications and Add Button */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">Seller Dashboard</h1>
           <p className="text-gray-500">Manage your products and track sales</p>
         </div>
-        <button
-          className="bg-black text-white px-4 py-2 rounded-lg"
-          onClick={() => router.push("/addproduct")}
-        >
-          + Add Product
-        </button>
+
+        <div className="flex items-center gap-4">
+          <NotificationPanel onSelectOrder={handleSelectOrder} />
+          <button
+            className="bg-black text-white px-4 py-2 rounded-lg"
+            onClick={() => router.push("/addproduct")}
+          >
+            + Add Product
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -96,18 +109,19 @@ const SellerDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Product List */}
       {loading ? (
         <div className="text-center text-lg">Loading...</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {products.map((prod, idx) => (
+          {products.map((prod) => (
             <div
               key={prod._id}
               className="flex flex-col md:flex-row border border-black rounded-lg bg-white p-4 gap-6 items-center"
             >
               <div className="flex-shrink-0 flex items-center justify-center md:w-1/5">
                 <Image
-                  src={prod.imageUrl || "/placeholder.png"}
+                  src={prod.imageUrl || "/selloffer.png"}
                   alt={prod.productName}
                   width={100}
                   height={100}
@@ -131,7 +145,7 @@ const SellerDashboard: React.FC = () => {
                 <div className="flex gap-3 mt-2">
                   <Edit
                     className="w-6 h-6 cursor-pointer text-gray-600 hover:text-black"
-                    onClick={() => setEditIndex(idx)}
+                    onClick={() => setEditIndex(products.indexOf(prod))}
                   />
                   <Trash2
                     className="w-6 h-6 cursor-pointer text-red-500 hover:text-red-700"
@@ -144,6 +158,7 @@ const SellerDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Edit Modal */}
       {editIndex !== null && (
         <div
           className="fixed inset-0 bg-transparent bg-opacity-20 backdrop-blur-sm flex items-center justify-center z-50"

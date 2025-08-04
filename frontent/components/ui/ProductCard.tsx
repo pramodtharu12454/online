@@ -17,6 +17,14 @@ interface Product {
   imageUrl: string;
 }
 
+export interface IError extends Error {
+  res: {
+    data: {
+      message: string;
+    };
+  };
+}
+
 const fallBackProductImage = "/selloffer.png";
 const PRODUCTS_PER_PAGE = 9;
 

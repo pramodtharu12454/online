@@ -14,7 +14,7 @@ export default function TeamAndFooterCard() {
     },
     {
       name: "Pramod Tharu",
-      role: "Backend Developer/Full Stack Developer",
+      role: "Full Stack Developer",
       desc: "Full-stack developer specializing in scalable web apps and system design.",
       image: "/parmod.jpg",
     },

@@ -1,8 +1,8 @@
 "use client";
-import { ShoppingCart, Menu, X } from "lucide-react";
+import { Badge, Menu, ShoppingCart, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface HeaderProps {
   username?: string;
@@ -48,7 +48,9 @@ const Header = ({ username }: HeaderProps) => {
         {/* Desktop Menu */}
         <div className="hidden md:flex items-center space-x-6">
           <Link href="/cart" className="text-black hover:text-gray-700">
-            <ShoppingCart className="h-6 w-6" />
+            <Badge color="warning">
+              <ShoppingCart className="h-6 w-6" />
+            </Badge>
           </Link>
 
           <Link
