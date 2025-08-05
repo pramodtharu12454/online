@@ -5,6 +5,7 @@ import connectDB from "./db.connection.js";
 import { userController } from "./user/usercontroller.js";
 import { productController } from "./product/productcontroller.js";
 import { cartController } from "./cart/cartcontroller.js";
+import { orderController } from "./order/order.controller.js";
 
 const app = express();
 
@@ -21,6 +22,7 @@ await connectDB();
 app.use(userController);
 app.use(productController);
 app.use(cartController);
+app.use(orderController);
 
 const PORT = 8000;
 app.listen(PORT, () => {

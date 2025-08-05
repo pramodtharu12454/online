@@ -1,5 +1,5 @@
 "use client";
-import { Badge, Menu, ShoppingCart, X } from "lucide-react";
+import { Badge, Menu, ShoppingCart, X, Bell } from "lucide-react"; // ← Added Bell here
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -52,6 +52,18 @@ const Header = ({ username }: HeaderProps) => {
               <ShoppingCart className="h-6 w-6" />
             </Badge>
           </Link>
+
+          {/* 🔔 Notification icon added */}
+          {isLoggedIn && (
+            <Link
+              href="/notifications"
+              className="text-black hover:text-gray-700"
+            >
+              <Badge color="warning">
+                <Bell className="h-6 w-6" />
+              </Badge>
+            </Link>
+          )}
 
           <Link
             href="/about"
@@ -118,9 +130,21 @@ const Header = ({ username }: HeaderProps) => {
             className="w-full border border-black rounded px-4 py-2 bg-white text-black focus:outline-none"
           />
 
-          <Link href="/cart" className="block text-black hover:underline">
-            🛒 Cart
-          </Link>
+          {isLoggedIn && (
+            <Link href="/cart" className="block text-black hover:underline">
+              🛒 Cart
+            </Link>
+          )}
+
+          {/* 🔔 Notification link for mobile */}
+          {isLoggedIn && (
+            <Link
+              href="/notifications"
+              className="block text-black hover:underline"
+            >
+              🔔 Notifications
+            </Link>
+          )}
 
           <Link href="/about" className="block text-black hover:underline">
             About Us

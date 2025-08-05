@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import axiosInstance from "@/lib/axios.instanse";
 import toast, { Toaster } from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 interface CartItem {
   _id: string;
@@ -15,6 +16,7 @@ interface CartItem {
 }
 
 const Cart = () => {
+  const router = useRouter();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -263,11 +265,15 @@ const Cart = () => {
             </div>
             <button
               className="w-full bg-black text-white py-2 mt-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => router.push("/CheckoutForm")}
               disabled={cartItems.length === 0}
             >
               Proceed to Checkout
             </button>
-            <button className="w-full border mt-2 py-2 rounded">
+            <button
+              className="w-full border mt-2 py-2 rounded"
+              onClick={() => router.push("/")}
+            >
               Continue Shopping
             </button>
           </div>

@@ -1,12 +1,11 @@
 "use client";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { Edit, Trash2, X } from "lucide-react";
+import { Badge, Bell, Edit, Trash2, X } from "lucide-react";
 import EditProduct from "../productform/EditProduct";
 import axiosInstance from "@/lib/axios.instanse";
 import Image from "next/image";
-import NotificationPanel from "../productform/NotificationPanel";
-// ✅ import NotificationPanel
+import Link from "next/link";
 
 const SellerDashboard: React.FC = () => {
   const router = useRouter();
@@ -16,9 +15,6 @@ const SellerDashboard: React.FC = () => {
   console.log(products);
 
   // ✅ Order notification handler (currently just logs to console)
-  const handleSelectOrder = (order: any) => {
-    console.log("Selected order:", order);
-  };
 
   // Fetch products from backend
   useEffect(() => {
@@ -73,9 +69,17 @@ const SellerDashboard: React.FC = () => {
           <h1 className="text-3xl font-bold">Seller Dashboard</h1>
           <p className="text-gray-500">Manage your products and track sales</p>
         </div>
+        <Link
+          href="/sellernotification"
+          className="text-black hover:text-gray-700"
+        >
+          seller Notifications
+          <Badge color="warning">
+            <Bell className="h-6 w-6" />
+          </Badge>
+        </Link>
 
         <div className="flex items-center gap-4">
-          <NotificationPanel onSelectOrder={handleSelectOrder} />
           <button
             className="bg-black text-white px-4 py-2 rounded-lg"
             onClick={() => router.push("/addproduct")}
