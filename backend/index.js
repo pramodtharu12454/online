@@ -6,6 +6,7 @@ import { userController } from "./user/usercontroller.js";
 import { productController } from "./product/productcontroller.js";
 import { cartController } from "./cart/cartcontroller.js";
 import { orderController } from "./order/order.controller.js";
+import { sellerController } from "./seller/seller.controller.js";
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use(userController);
 app.use(productController);
 app.use(cartController);
 app.use(orderController);
+app.use(sellerController);
 
 const PORT = 8000;
 app.listen(PORT, () => {

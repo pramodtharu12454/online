@@ -1,248 +1,228 @@
 "use client";
-
-import React, { useState } from "react";
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  CardHeader,
-  TextField,
-  Typography,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  Grid,
-} from "@mui/material";
-import { User, MapPin, CreditCard } from "lucide-react";
 import axiosInstance from "@/lib/axios.instanse";
-import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
+
+interface CartItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+}
 
 const CheckoutForm = () => {
+  const router = useRouter();
+
+  const [cartitem, setCartitem] = useState<CartItem[]>([]);
+  const [total, setTotal] = useState(0); // <-- total state
+  const [submitting, setSubmitting] = useState(false);
+
+  // Fetch cart items from API
+  useEffect(() => {
+    const fetchCartItems = async () => {
+      try {
+        const res = await axiosInstance.get("/cart/items");
+        const normalizedData = (res.data || []).map((item: any) => ({
+          ...item,
+          price: Number(item.price) || 0,
+          quantity: Number(item.quantity) || 1,
+        }));
+
+        setCartitem(normalizedData);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchCartItems();
+  }, []);
+
+  // Calculate total whenever cart items change
+  useEffect(() => {
+    const totalAmount = cartitem.reduce(
+      (acc, item) => acc + item.price * item.quantity,
+      0
+    );
+    setTotal(totalAmount);
+  }, [cartitem]); // <-- recalculate when cartitem updates
+
+  // Customer form fields
   const [formData, setFormData] = useState({
-    fullName: "",
+    name: "",
     email: "",
-    phoneNumber: "",
-    streetAddress: "",
+    phone: "",
+    address: "",
     city: "",
     postalCode: "",
     paymentMethod: "eSewa",
   });
 
-  const orderSummary = [
-    { name: "Premium Wireless Headphones", qty: 1, price: 15000 },
-    { name: "Phone Case", qty: 2, price: 1200 },
-  ];
-
-  const total = orderSummary.reduce(
-    (acc, item) => acc + item.price * item.qty,
-    0
-  );
-
+  // Handle form input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async () => {
+  // Handle payment method selection
+  const handlePaymentChange = (method: string) => {
+    setFormData({ ...formData, paymentMethod: method });
+  };
+
+  // Submit order to backend
+  const handlePlaceOrder = async () => {
+    if (
+      !formData.name ||
+      !formData.email ||
+      !formData.phone ||
+      !formData.address ||
+      !formData.city
+    ) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    if (cartitem.length === 0) {
+      toast.error("Cart is empty");
+      return;
+    }
+
+    const items = cartitem.map((item) => ({
+      productId: item.productId,
+      name: item.productName,
+      qty: item.quantity,
+      price: item.price,
+    }));
+
+    const orderData = {
+      customer: {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        postalCode: formData.postalCode,
+      },
+      items,
+      paymentMethod: formData.paymentMethod,
+      total, // calculated dynamically
+    };
+
     try {
-      await axiosInstance.post("/api/orders", {
-        customer: {
-          name: formData.fullName,
-          email: formData.email,
-          phone: formData.phoneNumber,
-          address: formData.streetAddress,
-          city: formData.city,
-          postalCode: formData.postalCode,
-        },
-        paymentMethod: formData.paymentMethod,
-        items: orderSummary,
-        total,
-      });
+      setSubmitting(true);
+      await axiosInstance.post("/order/product", orderData);
       toast.success("Order placed successfully!");
-    } catch {
-      toast.error("Failed to place order.");
+
+      localStorage.removeItem("checkoutcartitem");
+      localStorage.removeItem("checkoutTotal");
+    } catch (error: any) {
+      console.error("Order placement failed:", error);
+      toast.error(error.response?.data?.message || "Failed to place order");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <Box
-      display="flex"
-      flexDirection={{ xs: "column", md: "row" }}
-      gap={2}
-      padding={2}
-    >
-      <Box flex={1} display="flex" flexDirection="column" gap={2}>
-        {/* Customer Info */}
-        <Card>
-          <CardHeader
-            avatar={<User />}
-            title={
-              <Typography fontWeight="bold">Customer Information</Typography>
-            }
+    <div className="p-4 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+      <Toaster position="top-right" />
+      {/* LEFT: Customer Info */}
+      <div className="space-y-4">
+        <h2 className="font-bold text-lg">Customer Information</h2>
+        <input
+          name="name"
+          placeholder="Full Name"
+          value={formData.name}
+          onChange={handleChange}
+          className="border p-2 w-full"
+        />
+        <div className="flex gap-2">
+          <input
+            name="email"
+            placeholder="Email Address"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+            className="border p-2 flex-1"
           />
-          <CardContent>
-            <TextField
-              label="Full Name *"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-            />
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  label="Email Address *"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  fullWidth
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Phone Number *"
-                  name="phoneNumber"
-                  value={formData.phoneNumber}
-                  onChange={handleChange}
-                  fullWidth
-                />
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-
-        {/* Delivery Address */}
-        <Card>
-          <CardHeader
-            avatar={<MapPin />}
-            title={<Typography fontWeight="bold">Delivery Address</Typography>}
+          <input
+            name="phone"
+            placeholder="Phone Number"
+            value={formData.phone}
+            onChange={handleChange}
+            className="border p-2 flex-1"
           />
-          <CardContent>
-            <TextField
-              label="Street Address *"
-              name="streetAddress"
-              value={formData.streetAddress}
-              onChange={handleChange}
-              fullWidth
-              multiline
-              rows={2}
-              margin="normal"
-            />
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  label="City *"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  fullWidth
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField
-                  label="Postal Code"
-                  name="postalCode"
-                  value={formData.postalCode}
-                  onChange={handleChange}
-                  fullWidth
-                />
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
+        </div>
+        <h2 className="font-bold text-lg">Delivery Address</h2>
+        <input
+          name="address"
+          placeholder="Street Address"
+          value={formData.address}
+          onChange={handleChange}
+          className="border p-2 w-full"
+        />
+        <div className="flex gap-2">
+          <input
+            name="city"
+            placeholder="City"
+            value={formData.city}
+            onChange={handleChange}
+            className="border p-2 flex-1"
+          />
+          <input
+            name="postalCode"
+            placeholder="Postal Code"
+            value={formData.postalCode}
+            onChange={handleChange}
+            className="border p-2 flex-1"
+          />
+        </div>
 
         {/* Payment Method */}
-        <Card>
-          <CardHeader
-            avatar={<CreditCard />}
-            title={<Typography fontWeight="bold">Payment Method</Typography>}
-          />
-          <CardContent>
-            <RadioGroup
-              name="paymentMethod"
-              value={formData.paymentMethod}
-              onChange={handleChange}
-            >
-              <FormControlLabel
-                value="eSewa"
-                control={<Radio />}
-                label={
-                  <Box>
-                    <Typography>eSewa</Typography>
-                    <Typography variant="caption">
-                      Pay securely with your eSewa wallet
-                    </Typography>
-                  </Box>
-                }
+        <h2 className="font-bold text-lg">Payment Method</h2>
+        <div className="space-y-2">
+          {["eSewa", "Khalti", "COD"].map((method) => (
+            <label key={method} className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="paymentMethod"
+                checked={formData.paymentMethod === method}
+                onChange={() => handlePaymentChange(method)}
               />
-              <FormControlLabel
-                value="Khalti"
-                control={<Radio />}
-                label={
-                  <Box>
-                    <Typography>Khalti</Typography>
-                    <Typography variant="caption">
-                      Digital wallet for instant payments
-                    </Typography>
-                  </Box>
-                }
-              />
-              <FormControlLabel
-                value="COD"
-                control={<Radio />}
-                label={
-                  <Box>
-                    <Typography>Cash on Delivery</Typography>
-                    <Typography variant="caption">
-                      Pay when you receive your order (No advance payment)
-                    </Typography>
-                  </Box>
-                }
-              />
-            </RadioGroup>
-          </CardContent>
-        </Card>
-      </Box>
+              {method}
+            </label>
+          ))}
+        </div>
+      </div>
 
-      {/* Order Summary */}
-      <Box flex={1}>
-        <Card>
-          <CardHeader
-            title={<Typography fontWeight="bold">Order Summary</Typography>}
-          />
-          <CardContent>
-            {orderSummary.map((item, index) => (
-              <Box key={index} display="flex" justifyContent="space-between">
-                <Box>
-                  <Typography>{item.name}</Typography>
-                  <Typography variant="caption">Qty: {item.qty}</Typography>
-                </Box>
-                <Typography>NPR {item.price.toLocaleString()}</Typography>
-              </Box>
-            ))}
-            <Box display="flex" justifyContent="space-between" mt={2}>
-              <Typography fontWeight="bold">Total</Typography>
-              <Typography fontWeight="bold">
-                NPR {total.toLocaleString()}
-              </Typography>
-            </Box>
+      {/* RIGHT: Order Summary */}
+      <div>
+        <h2 className="font-bold text-lg mb-2">Order Summary</h2>
+        <div className="border p-4 space-y-2 max-h-[400px] overflow-y-auto">
+          {cartitem.length === 0 && <p>Your cart is empty.</p>}
 
-            <Button
-              fullWidth
-              variant="contained"
-              sx={{ mt: 2, background: "black" }}
-              onClick={handleSubmit}
-            >
-              Place Order
-            </Button>
-            <Typography variant="caption" display="block" mt={1}>
-              By placing this order, you agree to our terms and conditions
-            </Typography>
-          </CardContent>
-        </Card>
-      </Box>
-    </Box>
+          {cartitem.map((item) => (
+            <div key={item.productId} className="flex justify-between">
+              <span>
+                {item.productName} (x{item.quantity})
+              </span>
+              <span>NPR {(item.price * item.quantity).toLocaleString()}</span>
+            </div>
+          ))}
+
+          <div className="flex justify-between font-bold border-t pt-2">
+            <span>Total</span>
+            <span>NPR {total.toLocaleString()}</span>
+          </div>
+
+          <button
+            onClick={handlePlaceOrder}
+            className="w-full bg-black text-white py-2 mt-3 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={submitting || cartitem.length === 0}
+          >
+            {submitting ? "Placing Order..." : "PLACE ORDER"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

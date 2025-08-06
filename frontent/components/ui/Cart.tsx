@@ -265,7 +265,11 @@ const Cart = () => {
             </div>
             <button
               className="w-full bg-black text-white py-2 mt-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => router.push("/CheckoutForm")}
+              onClick={() =>
+                router.push("/CheckoutForm", {
+                  state: { cartItems, total: totalPrice }, // include total
+                })
+              }
               disabled={cartItems.length === 0}
             >
               Proceed to Checkout
