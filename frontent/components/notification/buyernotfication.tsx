@@ -35,7 +35,7 @@ const BuyerOrders: React.FC = () => {
       try {
         const res = await axiosInstance.get("/buyer/orders");
         setOrders(res.data);
-      } catch (err) {
+      } catch {
         setError("Failed to load orders");
       } finally {
         setLoading(false);

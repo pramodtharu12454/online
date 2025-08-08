@@ -203,7 +203,7 @@ const SellerOrdersPage: React.FC = () => {
           </Typography>
           <Select
             value={newStatus}
-            onChange={(e) => setNewStatus(e.target.value as any)}
+            onChange={(e) => setNewStatus(e.target.value as "Pending" | "Delivered" | "Cancelled")}
             fullWidth
           >
             <MenuItem value="Pending">Pending</MenuItem>
