@@ -242,7 +242,6 @@ const Cart = () => {
             </button>
           )}
         </div>
-        {/* Cart Summary */}
 
         {/* Summary */}
         <div className="space-y-6">
